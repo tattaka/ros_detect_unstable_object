@@ -1,0 +1,26 @@
+# pyenv
+.python-version
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# ROS
+msg_gen/
+srv_gen/
+msg/*Action.msg
+msg/*ActionFeedback.msg
+msg/*ActionGoal.msg
+msg/*ActionResult.msg
+msg/*Feedback.msg
+msg/*Goal.msg
+msg/*Result.msg
+msg/_*.py
+
+# qcreator stuff
+CMakeLists.txt.user
+
+srv/_*.py
+*.pyc
+
+*~
