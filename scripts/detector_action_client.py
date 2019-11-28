@@ -10,12 +10,12 @@ import cv_bridge
 import numpy as np
 import rospy
 from sensor_msgs.msg import Image
-
+from detect_unstable_object.msg import DetectUnstableObjectAction,DetectUnstableObjectGoal, DetectUnstableObjectResult
 from importlib import import_module
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('img_path', type=string)
+    parser.add_argument('img_path')
     args = parser.parse_args()
     bridge = cv_bridge.CvBridge()
     rospy.init_node('detect_unstable_object_client')

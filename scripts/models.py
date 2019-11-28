@@ -127,8 +127,11 @@ class ResUNet(chainer.Chain):
 
     def predict(self, x):
         with chainer.using_config('train', False), chainer.using_config('enable_backprop', False):
-            result, _ = self.forward(x)
-
+            result = self.forward(x)
+            if self.return_hidden:
+                return result[0]
+            else:
+                return result
 
 if __name__ == '__main__':
     # simple test

@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+ #! /usr/bin/env python
 
 import cv2
 import os
@@ -9,10 +9,13 @@ import cv_bridge
 import numpy as np
 import rospy
 from sensor_msgs.msg import Image
+from detect_unstable_object.msg import DetectUnstableObjectAction,DetectUnstableObjectGoal, DetectUnstableObjectResult 
 import chainer
-
+from chainer import links as L
+from chainer import functions as F
+from chainercv import transforms
 from importlib import import_module
-from models import ResUnet
+from models import ResUNet
 
 
 class UnstableObjectDetector:
@@ -23,7 +26,7 @@ class UnstableObjectDetector:
         self.config = None
         self._bridge = cv_bridge.CvBridge()
 
-        self.get_config(config_name)
+        self.config = self.get_config(config_name)
         self.get_model()
 
         self.load_model()
@@ -38,6 +41,7 @@ class UnstableObjectDetector:
     def action_call_back(self, goal):
         image = self._bridge.imgmsg_to_cv2(goal.image)
         msg = self.eval_image(image)
+        msg = self._bridge.cv2_to_imgmsg(msg)
         if not self.server.is_preempt_requested():
             if msg is not None:
                 result = DetectUnstableObjectResult()
@@ -45,7 +49,7 @@ class UnstableObjectDetector:
                 result.id = goal.id
                 self.server.set_succeeded(result)
 
-                result_msg = self._bridge.cv2_to_imgmsg(msg)
+                result_msg = msg
                 result_msg.header.stamp = rospy.Time.now()
                 self.image_pub.publish(result_msg)
 
@@ -57,7 +61,8 @@ class UnstableObjectDetector:
         self.image_pub.publish(result_msg)
 
     def get_config(self, config_name):
-        self.config = import_module('configs.' + args.config)
+        opts = import_module('configs.' + config_name)
+        return opts.Config()
 
     def get_model(self):
         self.net = ResUNet(return_hidden=False, n_class=self.config.n_class, backborn=self.config.backborn,
@@ -65,10 +70,9 @@ class UnstableObjectDetector:
 
     def load_model(self):
         chainer.serializers.load_npz(
-            '../train_results/'+self.config.trained_model_path+'/snapshot_model_f1max.npz', self.net)
-
+            '/root/HSR/catkin_ws/src/cv_detect_unstable_object/train_results/'+self.config.trained_model_path+'/snapshot_model_f1max.npz', self.net)
     def eval_image(self, image):
-        image_color, param = preprocesss(image)
+        image_color, param = self.preprocesss(image)
         if self.config.color:
             image = L.model.vision.resnet.prepare(
                 image_color, size=self.config.input_shape)
@@ -84,8 +88,9 @@ class UnstableObjectDetector:
             image[None, :, :, :].astype(np.float32)))
         pred_heatmap = chainer.cuda.to_cpu(pred_heatmap.data[0][0])
         pred_heatmap = self.postprocess(pred_heatmap)
-        pred_fusion = self.make_fusion_image(self, pred_heatmap, image_color)
+        pred_fusion = self.make_fusion_image(pred_heatmap, image_color)
         pred_fusion = self.inverse_resize_contain(pred_fusion, param)
+        print(pred_fusion)
         return pred_fusion
 
     def preprocesss(self, image):

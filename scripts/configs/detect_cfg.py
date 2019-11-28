@@ -7,5 +7,5 @@ class Config(object):
         self.trained_model_path = 'color'
         self.color = True
         self.device = 0
-        self.num_class = 1
+        self.n_class = 1
         self.backborn = 'seresnext50'
