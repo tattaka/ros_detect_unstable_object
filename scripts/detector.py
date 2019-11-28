@@ -41,7 +41,7 @@ class UnstableObjectDetector:
     def action_call_back(self, goal):
         image = self._bridge.imgmsg_to_cv2(goal.image)
         msg = self.eval_image(image)
-        msg = self._bridge.cv2_to_imgmsg(msg)
+        msg = self._bridge.cv2_to_imgmsg(msg, "bgr8")
         if not self.server.is_preempt_requested():
             if msg is not None:
                 result = DetectUnstableObjectResult()
