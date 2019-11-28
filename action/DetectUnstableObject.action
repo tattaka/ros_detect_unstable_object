@@ -1,5 +1,3 @@
-# Check if objects in image
-
 # Goal definition
 sensor_msgs/Image image
 int32 id
