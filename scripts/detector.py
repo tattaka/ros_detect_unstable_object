@@ -88,9 +88,11 @@ class UnstableObjectDetector:
             image[None, :, :, :].astype(np.float32)))
         pred_heatmap = chainer.cuda.to_cpu(pred_heatmap.data[0][0])
         pred_heatmap = self.postprocess(pred_heatmap)
+        print(image_color.shape)
         pred_fusion = self.make_fusion_image(pred_heatmap, image_color)
         pred_fusion = self.inverse_resize_contain(pred_fusion, param)
-        print(pred_fusion)
+        #pred_fusion = self.inverse_resize_contain(pred_heatmap, param)
+        cv2.imwrite("test_result.png", pred_fusion)
         return pred_fusion
 
     def preprocesss(self, image):
@@ -105,13 +107,14 @@ class UnstableObjectDetector:
         pred_heatmap = F.tanh(pred_heatmap).data
         pred_heatmap = (pred_heatmap*255).astype(np.uint8)
         pred_heatmap = cv2.applyColorMap(
-            pred_heatmap, cv2.COLORMAP_HOT)[:, :, ::-1]
+            pred_heatmap, cv2.COLORMAP_HOT)
         return pred_heatmap
 
     def make_fusion_image(self, pred_heatmap, image):
         pred_fusion = image.copy().transpose(1, 2, 0)
-        pred_fusion[:, :, 1:3] = pred_fusion[:, :, 1:3] * \
-            (1-pred_heatmap[:, :, 0]/255)[:, :, None]
+        pred_fusion[:, :, 0:2] = pred_fusion[:, :, 0:2] * \
+            (1-pred_heatmap[:, :, 2]/255.)[:, :, None]
+        print((pred_heatmap[:, :, 2]/255.).max())
         return pred_fusion
 
     def inverse_resize_contain(self, image, param):
