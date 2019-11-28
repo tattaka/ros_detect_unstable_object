@@ -71,7 +71,13 @@ class UnstableObjectDetector:
     def load_model(self):
         chainer.serializers.load_npz(
             '/root/HSR/catkin_ws/src/cv_detect_unstable_object/train_results/'+self.config.trained_model_path+'/snapshot_model_f1max.npz', self.net)
+        device = self.config.device
+        if device >= 0:
+            chainer.cuda.get_device(device).use()
+            self.net.to_gpu()
+
     def eval_image(self, image):
+        start = time.time()
         image_color, param = self.preprocesss(image)
         if self.config.color:
             image = L.model.vision.resnet.prepare(
@@ -80,15 +86,13 @@ class UnstableObjectDetector:
             image = cv2.cvtColor(image_color.transpose(
                 (1, 2, 0)), cv2.COLOR_RGB2GRAY)[None, :, :]
             image = image / 255.0
-        device = self.config.device
-        if device >= 0:
-            chainer.cuda.get_device(device).use()
-            self.net.to_gpu()
         pred_heatmap = self.net.predict(self.net.xp.asarray(
             image[None, :, :, :].astype(np.float32)))
+        end = time.time()
+        rospy.loginfo('prediction finished. (%f [sec])' % (end - start, ))
         pred_heatmap = chainer.cuda.to_cpu(pred_heatmap.data[0][0])
         pred_heatmap = self.postprocess(pred_heatmap)
-        print(image_color.shape)
+        #print(image_color.shape)
         pred_fusion = self.make_fusion_image(pred_heatmap, image_color)
         pred_fusion = self.inverse_resize_contain(pred_fusion, param)
         #pred_fusion = self.inverse_resize_contain(pred_heatmap, param)
@@ -114,7 +118,7 @@ class UnstableObjectDetector:
         pred_fusion = image.copy().transpose(1, 2, 0)
         pred_fusion[:, :, 0:2] = pred_fusion[:, :, 0:2] * \
             (1-pred_heatmap[:, :, 2]/255.)[:, :, None]
-        print((pred_heatmap[:, :, 2]/255.).max())
+        #print((pred_heatmap[:, :, 2]/255.).max())
         return pred_fusion
 
     def inverse_resize_contain(self, image, param):
