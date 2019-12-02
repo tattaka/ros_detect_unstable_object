@@ -1,4 +1,4 @@
-import numpy as np
+import numpy as np 
 import os
 import cv2
 
@@ -8,24 +8,25 @@ from chainer import functions as F
 from chainer import links as L
 
 from functools import partial
+from pathlib import Path
+from itertools import groupby
 
 
-def backborn_provider(backborn='resnet50', pretrained_model='imagenet'):
+def backborn_provider(backborn = 'resnet50', pretrained_model = 'auto'):
     if backborn == 'resnet50':
-        return L.ResNet50Layers(pretrained_model=pretrained_model)
+        return chainercv.links.model.resnet.ResNet50(pretrained_model = pretrained_model)
     elif backborn == 'resnet101':
-        return L.ResNet101Layers(pretrained_model=pretrained_model)
+        return chainercv.links.model.resnet.ResNet101(pretrained_model = pretrained_model)
     elif backborn == 'resnet152':
-        return L.ResNet152Layers(pretrained_model=pretrained_model)
+        return chainercv.links.model.resnet.ResNet152(pretrained_model = pretrained_model)
     elif backborn == 'seresnext50':
-        return chainercv.links.model.senet.SEResNeXt50(pretrained_model=pretrained_model)
+        return chainercv.links.model.senet.SEResNeXt50(pretrained_model = pretrained_model)
     elif backborn == 'seresnext101':
-        return chainercv.links.model.senet.SEResNeXt101(pretrained_model=pretrained_model)
+        return chainercv.links.model.senet.SEResNeXt101(pretrained_model = pretrained_model)
     else:
-        raise Exception(
-            'NotImplementedError: This is an unimplemented model name.')
-
-
+        raise Exception('NotImplementedError: This is an unimplemented model name.')
+        
+        
 class ConvBNR(chainer.Chain):
     def __init__(self, ch0, ch1, use_bn=True,
                  sample='down', activation=F.relu, dropout=False):
@@ -47,8 +48,7 @@ class ConvBNR(chainer.Chain):
     def forward(self, x):
         h = self.c(x)
         if self.sample == 'up':
-            h = F.unpooling_2d(h, 4, 2, 1, outsize=(
-                h.shape[2]*2, h.shape[3]*2))
+            h = F.unpooling_2d(h, 4, 2, 1, outsize=(h.shape[2]*2, h.shape[3]*2))
         if self.use_bn:
             h = self.bn(h)
         if self.dropout:
@@ -56,7 +56,6 @@ class ConvBNR(chainer.Chain):
         if self.activation is not None:
             h = self.activation(h)
         return h
-
 
 class ResUNet(chainer.Chain):
     '''
@@ -68,9 +67,7 @@ class ResUNet(chainer.Chain):
     res4 -> (1, 1024, H/16, W/16)
     res5 -> (1, 2048, H/32, W/32)
     '''
-
-    # 'reduce_param' divides the number of output layers during convolution.
-    def __init__(self, n_class, return_hidden=False, backborn='resnet50', pretrained_model='auto', reduce_param=1, color=True):
+    def __init__(self, n_class, return_hidden = False, backborn='resnet50', pretrained_model='auto', reduce_param=1, color=True): # 'reduce_param' divides the number of output layers during convolution.
         w = chainer.initializers.HeNormal()
         super(ResUNet, self).__init__()
         self.layers = ['conv1', 'pool1', 'res2', 'res3', 'res4', 'res5']
@@ -81,33 +78,26 @@ class ResUNet(chainer.Chain):
         self.return_hidden = return_hidden
         with self.init_scope():
             if self.color == False:
-                self.first_layer = L.Convolution2D(
-                    None, 3, initialW=w, ksize=1, stride=1, pad=0)  # gray
-            self.base_model = backborn_provider(
-                backborn=backborn, pretrained_model=pretrained_model)
-
+                self.first_layer = L.Convolution2D(None, 3, initialW=w, ksize=1, stride=1, pad=0) # gray
+            self.base_model = backborn_provider(backborn=backborn, pretrained_model=pretrained_model)
+            
             for i, layer in enumerate(self.layers):
                 if layer[:-1] == 'pool':
-                    setattr(self, layer, partial(
-                        F.average_pooling_2d, ksize=4, stride=2, pad=1))
+                    setattr(self, layer, partial(F.average_pooling_2d, ksize=4, stride=2, pad=1))
                 else:
                     setattr(self, layer, self.base_model[layer])
-                setattr(self, layer+'_1x1', L.Convolution2D(None,
-                                                            int(out_arr[i] / reduce_param), initialW=w, ksize=1, stride=1, pad=0))
+                setattr(self, layer+'_1x1', L.Convolution2D(None, int(out_arr[i] / reduce_param), initialW=w, ksize=1, stride=1, pad=0))
                 if self.layers[i-1][:-1] == 'pool':
-                    setattr(self, layer+'_up', ConvBNR(None,
-                                                       int(in_arr[i] / reduce_param), use_bn=True, sample='mid', dropout=True))
+                    setattr(self, layer+'_up', ConvBNR(None, int(in_arr[i] / reduce_param), use_bn=True, sample='mid', dropout=True))
                 else:
-                    setattr(self, layer+'_up', ConvBNR(None,
-                                                       int(in_arr[i] / reduce_param), use_bn=True, sample='up', dropout=True))
-            self.conv_last = L.Convolution2D(
-                None, self.n_class, initialW=w, ksize=1, stride=1, pad=0)
-
+                    setattr(self, layer+'_up', ConvBNR(None, int(in_arr[i] / reduce_param), use_bn=True, sample='up', dropout=True))
+            self.conv_last = L.Convolution2D(None, self.n_class, initialW=w, ksize=1, stride=1, pad=0)
+        
     def forward(self, x):
         if self.color == False:
-            x = self.first_layer(x)
+            x = self.first_layer(x) 
         hs = [x]
-
+        
         for i, layer in enumerate(self.layers):
             hs.append(self[layer](hs[i]))
         h = None
@@ -118,13 +108,13 @@ class ResUNet(chainer.Chain):
             else:
                 h = F.concat([h, skip])
                 h = self[layer+'_up'](h)
-
+        
         result = F.sigmoid(self.conv_last(h))
         if self.return_hidden:
             return result, hs[-1]
         else:
             return result
-
+        
     def predict(self, x):
         with chainer.using_config('train', False), chainer.using_config('enable_backprop', False):
             result = self.forward(x)
@@ -132,11 +122,11 @@ class ResUNet(chainer.Chain):
                 return result[0]
             else:
                 return result
-
+    
+    
 if __name__ == '__main__':
     # simple test
-    net = ResUNet(return_hidden=True, n_class=4, backborn='resnet50',
-                  pretrained_model='auto', reduce_param=1)
+    net = ResUNet(return_hidden = True, n_class=4, backborn='resnet50', pretrained_model='auto', reduce_param=1)
 #     reg_net = RegMLP()
     x = np.zeros((1, 3, 256, 256)).astype('f')
     condition = np.zeros((1, 2, 8, 8)).astype('f')

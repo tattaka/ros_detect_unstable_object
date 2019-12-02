@@ -70,7 +70,7 @@ class UnstableObjectDetector:
 
     def load_model(self):
         chainer.serializers.load_npz(
-            '/root/HSR/catkin_ws/src/cv_detect_unstable_object/train_results/'+self.config.trained_model_path+'/snapshot_model_f1max.npz', self.net)
+            self.config.trained_model_path, self.net)
         device = self.config.device
         if device >= 0:
             chainer.cuda.get_device(device).use()
