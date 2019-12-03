@@ -103,7 +103,7 @@ class UnstableObjectDetector:
         image = image.transpose((2, 0, 1))
         ori_size = (image.shape[1], image.shape[2])
         image, param = transforms.resize_contain(
-            image, size=self.config.input_shape, fill=0, interpolation=2, return_param=True)
+            image, size=self.config.input_shape, fill=0, return_param=True)
         param['ori_size'] = ori_size
         return image, param
 
