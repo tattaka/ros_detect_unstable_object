@@ -94,8 +94,8 @@ class UnstableObjectDetector:
         pred_heatmap = self.postprocess(pred_heatmap)
         #print(image_color.shape)
         pred_fusion = self.make_fusion_image(pred_heatmap, image_color)
-        pred_fusion = self.inverse_resize_contain(pred_fusion, param)
-        #pred_fusion = self.inverse_resize_contain(pred_heatmap, param)
+        #pred_fusion = self.inverse_resize_contain(pred_fusion, param)
+        pred_fusion = self.inverse_resize_contain(pred_heatmap, param)
         cv2.imwrite("test_result.png", pred_fusion)
         return pred_fusion
 
