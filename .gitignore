@@ -1,11 +1,18 @@
-# pyenv
+# Trained weights:
+
+train_results
+
+# pyenv:
+
 .python-version
 
-# Jupyter Notebook
+# Jupyter Notebook:
+
 .ipynb_checkpoints
 *.ipynb
 
-# ROS
+# ROS:
+
 msg_gen/
 srv_gen/
 msg/*Action.msg
@@ -17,7 +24,8 @@ msg/*Goal.msg
 msg/*Result.msg
 msg/_*.py
 
-# qcreator stuff
+# Qt Creator:
+
 CMakeLists.txt.user
 
 srv/_*.py
