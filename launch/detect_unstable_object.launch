@@ -3,7 +3,7 @@
 <launch>
 
     <node pkg="detect_unstable_object" type="detector_node.py" name="detect_unstable_object" output="screen">
-        <remap from="detect_unstable_object/image_sub" to="/hsrb/head_center_camera/image_raw"/>
+        <!-- <remap from="detect_unstable_object/image_sub" to="/hsrb/head_center_camera/image_raw"/> -->
     </node>
 
 </launch>
