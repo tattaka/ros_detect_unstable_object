@@ -1,6 +1,6 @@
 # Trained weights:
 
-train_results
+*.npz
 
 # pyenv:
 
