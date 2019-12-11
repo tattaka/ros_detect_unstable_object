@@ -9,7 +9,8 @@ import cv_bridge
 import numpy as np
 import rospy
 from sensor_msgs.msg import Image
-from detect_unstable_object.msg import DetectUnstableObjectAction,DetectUnstableObjectGoal, DetectUnstableObjectResult 
+from detect_unstable_object.msg import DetectUnstableObjectAction,DetectUnstableObjectGoal, DetectUnstableObjectResult
+from sensor_msgs.msg import CompressedImage
 import chainer
 from chainer import links as L
 from chainer import functions as F
@@ -32,10 +33,12 @@ class UnstableObjectDetector:
         self.load_model()
         self.server = actionlib.SimpleActionServer('detect_unstable_object/action_server', DetectUnstableObjectAction,
                                                    self.action_call_back, auto_start=False)
-        self.subscriber = rospy.Subscriber(
-            'detect_unstable_object/image_sub', Image, self.call_back, queue_size=1)
+        self.compressed_subscriber = rospy.Subscriber(
+            'detect_unstable_object/image_sub/compressed', CompressedImage, self.call_back, queue_size=1)
         self.image_pub = rospy.Publisher(
             'detect_unstable_object/result_pub', Image, queue_size=1)
+        self.compressed_image_pub = rospy.Publisher(
+            'detect_unstable_object/result_pub/compressed', CompressedImage, queue_size=1)
         self.server.start()
 
     def action_call_back(self, goal):
@@ -54,11 +57,11 @@ class UnstableObjectDetector:
                 self.image_pub.publish(result_msg)
 
     def call_back(self, msg):
-        image = self._bridge.imgmsg_to_cv2(msg)
+        image = self._bridge.compressed_imgmsg_to_cv2(msg, desired_encoding="rgb8")
         result = self.eval_image(image)
-        result_msg = self._bridge.cv2_to_imgmsg(result)
+        result_msg = self._bridge.cv2_to_compressed_imgmsg(result, dst_format='jpg')
         result_msg.header.stamp = rospy.Time.now()
-        self.image_pub.publish(result_msg)
+        self.compressed_image_pub.publish(result_msg)
 
     def get_config(self, config_name):
         opts = import_module('configs.' + config_name)
