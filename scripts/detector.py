@@ -42,7 +42,7 @@ class UnstableObjectDetector:
         self.server.start()
 
     def action_call_back(self, goal):
-        image = self._bridge.imgmsg_to_cv2(goal.image)
+        image = self._bridge.imgmsg_to_cv2(goal.image, desired_encoding="rgb8")
         msg = self.eval_image(image)
         msg = self._bridge.cv2_to_imgmsg(msg, "bgr8")
         if not self.server.is_preempt_requested():
